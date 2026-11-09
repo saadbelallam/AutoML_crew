@@ -5,8 +5,10 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "langchain[google-genai]>=1.4.9",
     "numpy>=2.5.4",
     "pandas>=3.1.1",
+    "python-dotenv>=1.2.4",
     "scikit-learn>=1.9.1",
 ]
 
