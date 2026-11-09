@@ -1,7 +1,11 @@
+from pathlib import Path
+
 from agents.state import LabState, WorkerInput
 from agents.worker import run_worker
 
 from langgraph.types import Send
+
+from harness.evaluate import METRICS
 
 
 def worker_node(input: WorkerInput) -> dict:
@@ -53,3 +57,36 @@ def report_node(state: LabState) -> dict:
         score = f"{r['score']:.4f} ± {r['std']:.4f}" if r["score"] is not None else "failed"
         print(f"  {r['experiment_id']}  {score}  ({r['n_attempts']} attempts)  {r['idea']}")
     return {}
+
+
+def evaluator_node(state: LabState) -> dict:
+    higher_is_better = METRICS[state["metric"]][1]
+
+    successful = [r for r in state["results"]
+                  if r["round"] == state["round"] and r["status"] == "ok"]
+    if not successful:
+        return {}
+
+    pick = max if higher_is_better else min
+    champion = pick(successful, key=lambda r: r["score"])
+
+    if higher_is_better:
+        improved = champion["score"] > state["best_score"]
+    else:
+        improved = champion["score"] < state["best_score"]
+
+    if not improved:
+        return {"stale_rounds": state["stale_rounds"] + 1}
+
+    return {
+        "best_score": champion["score"],
+        "best_code": Path(champion["path"]).read_text(encoding="utf-8"),
+        "stale_rounds": 0,
+    }
+
+def should_continue(state: LabState) -> str:
+    if state["round"] >= state["max_rounds"]:
+        return "end"
+    if state["stale_rounds"] >= state["patience"]:
+        return "end"
+    return "planner"

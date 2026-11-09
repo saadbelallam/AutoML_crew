@@ -10,6 +10,9 @@ class LabState(TypedDict):
     ideas: list[str]
     results: Annotated[list[dict], operator.add]
     round: int
+    max_rounds: int
+    patience: int
+    stale_rounds: int
 
 
 class WorkerInput(TypedDict):
